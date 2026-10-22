@@ -2,7 +2,7 @@
 
 Carte interactive réalisée avec **Leaflet** dans le cadre du TP4 du cours de **Web Mapping** (3e année du cycle ingénieur, filière Sciences Géomatiques et Ingénierie Topographique, IAV Hassan II, Rabat).
 
-La carte présente le quartier de Madinat Al Irfane et le campus de l'Institut Agronomique et Vétérinaire Hassan II. Les couches du campus sont lues directement par le navigateur depuis des fichiers GeoJSON : le projet ne nécessite ni GeoServer ni aucun autre serveur cartographique.
+La carte présente le quartier de Madinat Al Irfane et le campus de l'Institut Agronomique et Vétérinaire Hassan II. Les couches du campus sont lues directement par le navigateur depuis des fichiers GeoJSON, et les requêtes spatiales sont calculées dans le navigateur : le projet ne nécessite ni GeoServer ni aucun autre serveur cartographique.
 
 ---
 
@@ -34,6 +34,30 @@ La carte présente le quartier de Madinat Al Irfane et le campus de l'Institut A
 
 Les styles reproduisent ceux des fichiers SLD utilisés auparavant avec GeoServer. Les icônes s'agrandissent automatiquement à partir du zoom 18.
 
+### Requêtes spatiales (constructeur de modèle)
+
+Le bouton **« Requêtes »**, sous les boutons de zoom, ouvre un constructeur de modèle inspiré du Model Builder. L'utilisateur choisit une couche d'entrée et un filtre, puis enchaîne des étapes : chaque étape reçoit le résultat de la précédente, et un schéma résume le modèle construit.
+
+Ces requêtes remplacent celles qui étaient auparavant envoyées au service WPS de GeoServer. Elles sont désormais calculées entièrement dans le navigateur par la bibliothèque **Turf.js**, à partir des mêmes fichiers GeoJSON.
+
+| Opération | Rôle |
+|---|---|
+| Tampon | Crée une zone autour de chaque entité, à une distance choisie en mètres (de 1 à 500 m). |
+| Centroïdes | Remplace chaque entité par son point central. |
+| Garder les entités situées dans… | Conserve les entités entièrement contenues dans une autre couche. |
+| Intersection avec… | Calcule les parties communes avec une autre couche. |
+| Sélectionner dans la zone… | Sélectionne les entités d'une autre couche contenues dans le résultat précédent (par exemple dans un tampon). |
+| Découper par… | Découpe le résultat par les polygones d'une autre couche. |
+| Compter les entités | Donne le nombre d'entités obtenues. |
+| Calculer l'emprise | Dessine le rectangle englobant et affiche ses coins. |
+| Surface totale | Additionne les surfaces des polygones, en m². |
+| Longueur totale | Additionne les longueurs des lignes, en m. |
+| Compter, surface ou longueur par catégorie | Calcule une valeur pour chaque catégorie et l'affiche dans un graphique. |
+
+Les filtres proposés portent sur les attributs des couches : arbres, palmiers, parkings et entrées pour les points, catégories de routes pour les voies, et groupes (formation, laboratoires, amphithéâtres, résidences, sport…) pour les bâtiments.
+
+Les résultats géométriques s'affichent en violet sur la carte principale, dans la couche « Résultat des requêtes ». Les résultats chiffrés s'affichent dans le panneau et dans un graphique Highcharts, et le résultat complet peut être consulté au format GeoJSON. Les surfaces et les longueurs sont calculées directement en mètres sur l'ellipsoïde, sans reprojection.
+
 ---
 
 ## Structure du projet
@@ -41,6 +65,8 @@ Les styles reproduisent ceux des fichiers SLD utilisés auparavant avec GeoServe
 ```
 carte-iav/
 ├── index.html          Page de la carte (HTML, CSS et JavaScript)
+├── requetes.js         Constructeur de modèle et calcul des requêtes spatiales
+├── requetes.css        Style du panneau des requêtes
 ├── README.md           Ce fichier
 ├── data/
 │   ├── grass.geojson
@@ -65,7 +91,7 @@ Les fichiers GeoJSON sont exportés depuis **QGIS** :
 1. Faire un clic droit sur la couche, puis choisir « Exporter » et « Sauvegarder les entités sous… ».
 2. Choisir le format **GeoJSON**.
 3. Choisir le système de coordonnées **EPSG:4326 (WGS 84)**, le seul que Leaflet lit directement.
-4. Conserver les champs utilisés par les styles : `name`, `color`, `category` et `icon_name`.
+4. Conserver les champs utilisés par les styles et les requêtes : `name`, `color`, `category`, `icon_name` et `group`.
 
 Si un fichier n'est pas en EPSG:4326, la page affiche un message d'avertissement au lieu de dessiner la couche.
 
@@ -108,7 +134,9 @@ Le site peut aussi être déposé sur **Netlify** en glissant le dossier complet
 ## Technologies
 
 - [Leaflet 1.9.4](https://leafletjs.com) pour l'affichage de la carte et des couches.
-- HTML, CSS et JavaScript, sans bibliothèque supplémentaire.
+- [Turf.js 7](https://turfjs.org) pour les calculs spatiaux des requêtes (tampons, intersections, surfaces, longueurs…).
+- [Highcharts](https://www.highcharts.com) pour les graphiques des résultats.
+- HTML, CSS et JavaScript, sans framework.
 - QGIS pour la préparation et l'export des données.
 
 ## Sources des fonds de carte
@@ -122,5 +150,3 @@ Le site peut aussi être déposé sur **Netlify** en glissant le dossier complet
 ## Auteur
 
 **KANE Wiame** — Élève ingénieure en Sciences Géomatiques et Ingénierie Topographique, Institut Agronomique et Vétérinaire Hassan II, Rabat.
-
-Cours de Web Mapping — Pr Hajji Hicham — Année universitaire 2026-2027.
