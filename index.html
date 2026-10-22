@@ -13,6 +13,9 @@
     crossorigin=""
   >
 
+  <!-- Panneau des requêtes spatiales -->
+  <link rel="stylesheet" href="requetes.css">
+
   <style>
     body {
       margin: 0;
@@ -735,5 +738,11 @@
       });
     }
   </script>
+
+  <!-- Requêtes spatiales calculées dans le navigateur (sans GeoServer) :
+       Turf.js pour les calculs, Highcharts pour les graphiques -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="requetes.js"></script>
 </body>
 </html>

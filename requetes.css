@@ -1,0 +1,207 @@
+/* ============================================================
+   PANNEAU DES REQUÊTES SPATIALES (sans GeoServer)
+   ============================================================ */
+
+/* Bouton « Requêtes » sous les boutons de zoom */
+.bouton-requetes a {
+  width: auto !important;
+  padding: 0 9px;
+  font: bold 12px Arial, sans-serif;
+  color: #1F4A3E;
+  text-decoration: none;
+}
+
+/* Panneau flottant à gauche de la carte */
+.req-panneau {
+  position: fixed;
+  top: 10px;
+  left: 56px;
+  width: 340px;
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  background: #FFFFFF;
+  padding: 14px 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  font: 13px Arial, sans-serif;
+}
+.req-panneau[hidden] {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .req-panneau {
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: 10px;
+    width: auto;
+    max-height: 60vh;
+  }
+}
+
+.req-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.05rem;
+  color: #1F4A3E;
+}
+.req-entete button {
+  border: 1px solid #C8D3CF;
+  background: #FFFFFF;
+  border-radius: 4px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-size: 12px;
+}
+#req-fermer {
+  font-size: 15px;
+  line-height: 1;
+  margin-left: 4px;
+}
+
+.req-intro {
+  margin: 4px 0 6px;
+  font-size: 11.5px;
+  color: #5C6B66;
+}
+
+/* ===== Étapes du modèle ===== */
+.req-etape {
+  background: #F4F7F2;
+  border: 1px solid #D7E2DD;
+  border-left: 4px solid #2F6B5A;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+}
+.req-entree {
+  border-left-color: #1565C0;
+}
+
+.req-etape-titre {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  color: #1F4A3E;
+  margin-bottom: 5px;
+}
+.req-suppr {
+  border: none;
+  background: transparent;
+  color: #8E1C1C;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.req-etape select,
+.req-etape input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 5px;
+  border: 1px solid #C8D3CF;
+  border-radius: 4px;
+  font-size: 12.5px;
+  background: #FFFFFF;
+}
+.req-etape label {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #5C6B66;
+}
+
+.req-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.req-actions button {
+  flex: 1;
+  padding: 7px;
+  border-radius: 5px;
+  border: 1px solid #2F6B5A;
+  background: #FFFFFF;
+  color: #2F6B5A;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.req-actions button.principal {
+  background: #2F6B5A;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* Schéma du modèle : boîtes reliées par des flèches */
+.req-schema {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px dashed #C8D3CF;
+  border-radius: 6px;
+}
+.req-schema .boite {
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-size: 12px;
+  text-align: center;
+}
+.req-schema .boite-donnee   { background: #DCE8F7; color: #0D3C78; border-radius: 4px; }
+.req-schema .boite-outil    { background: #FFF3D6; color: #6B4A00; }
+.req-schema .boite-resultat { background: #2F6B5A; color: #FFFFFF; font-weight: bold; }
+.req-schema .fleche { color: #5C6B66; line-height: 1.3; }
+
+/* ===== Résultats ===== */
+.req-titre-resultat {
+  margin: 16px 0 6px;
+  font-size: 1rem;
+  color: #1F4A3E;
+}
+
+.req-texte {
+  padding: 8px;
+  background: #F4F7F2;
+  border-left: 3px solid #2F6B5A;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+.req-texte:empty {
+  display: none;
+}
+.req-texte.erreur {
+  background: #FDECEA;
+  border-left-color: #C62828;
+  color: #8E1C1C;
+}
+
+#req-graphique {
+  display: none;
+  margin-top: 8px;
+}
+
+.req-details {
+  margin-top: 10px;
+}
+.req-details summary {
+  cursor: pointer;
+  color: #2F6B5A;
+}
+.req-details pre {
+  max-height: 220px;
+  overflow: auto;
+  background: #1E2A27;
+  color: #D7EDB8;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: pre-wrap;
+}
