@@ -1,0 +1,102 @@
+/* ============================================================
+   Mise en page : la carte occupe toute la fenêtre
+   ============================================================ */
+html,
+body,
+#map {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* ============================================================
+   Légende (en bas à droite)
+   ============================================================ */
+.legende {
+  padding: 8px 10px;
+  background: white;
+  font: 13px Arial, sans-serif;
+  line-height: 1.55;
+}
+
+/* ============================================================
+   Étiquette affichée au survol d'un bâtiment ou d'un terrain
+   ============================================================ */
+.etiquette-survol {
+  background: #2F6B5A;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 9px;
+  font: 600 13px Arial, sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+}
+
+/* Supprime la petite flèche par défaut de l'étiquette Leaflet */
+.etiquette-survol::before {
+  display: none;
+}
+
+/* ============================================================
+   Noms des bâtiments en zoom fort (équivalent du TextSymbolizer)
+   ============================================================ */
+.etiquette-batiment {
+  width: 0;
+  height: 0;
+}
+
+.etiquette-batiment span {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 110px;
+  text-align: center;
+  font: 10px Arial, sans-serif;
+  color: #1A1A1A;
+  text-shadow:
+    -1px -1px 0 #fff, 1px -1px 0 #fff,
+    -1px 1px 0 #fff, 1px 1px 0 #fff;
+  pointer-events: none;
+}
+
+/* ============================================================
+   Icône de parking : carré bleu avec un "P" blanc
+   ============================================================ */
+.icone-parking {
+  box-sizing: border-box;
+  background: #1565C0;
+  border: 1px solid #FFFFFF;
+  color: #FFFFFF;
+  font: bold 8px Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icone-parking.grand {
+  border-width: 1.5px;
+  font-size: 12px;
+}
+
+/* ============================================================
+   Message d'aide en cas de problème de chargement
+   ============================================================ */
+.message-erreur {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: 90%;
+  background: #FDECEA;
+  color: #8A1C14;
+  border: 1px solid #F5C2BD;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font: 13px Arial, sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
+}
+
+.message-erreur p {
+  margin: 6px 0;
+}

@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Carte — Madinat Al Irfane, Rabat</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  >
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    /* ===== Ajouts : style des nouveaux éléments ===== */
+
+    /* Bandeau de titre */
+    .titre-carte {
+      background: rgba(255, 255, 255, 0.92);
+      padding: 8px 14px;
+      border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+    .titre-carte h1 {
+      margin: 0;
+      font-size: 16px;
+      color: #1b4d3e;
+    }
+    .titre-carte p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #555;
+    }
+
+    /* Affichage des coordonnées sous la souris */
+    .coord-souris {
+      background: rgba(255, 255, 255, 0.92);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Boutons personnalisés (retour au centre, géolocalisation) */
+    .bouton-carte a {
+      font-size: 18px;
+      line-height: 30px;
+      text-align: center;
+      text-decoration: none;
+      color: #333;
+      cursor: pointer;
+    }
+
+    /* Légende */
+    .legende {
+      background: rgba(255, 255, 255, 0.92);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 20px;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+    }
+    .legende b {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .legende i {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border-radius: 50%;
+    }
+
+    @media (max-width: 600px) {
+      .titre-carte h1 { font-size: 14px; }
+      .legende { display: none; }
+    }
+
+    /* ===== Ajouts : couches GeoJSON du campus IAV ===== */
+
+    /* Nom affiché au survol d'un bâtiment ou du campus */
+    .etiquette-survol {
+      background: #2F6B5A;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 9px;
+      font: 600 13px Arial, sans-serif;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+    }
+    .etiquette-survol::before {
+      display: none;
+    }
+
+    /* Noms des bâtiments en zoom fort */
+    .etiquette-batiment {
+      width: 0;
+      height: 0;
+    }
+    .etiquette-batiment span {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      width: max-content;
+      max-width: 110px;
+      text-align: center;
+      font: 10px Arial, sans-serif;
+      color: #1A1A1A;
+      text-shadow:
+        -1px -1px 0 #fff, 1px -1px 0 #fff,
+        -1px 1px 0 #fff, 1px 1px 0 #fff;
+      pointer-events: none;
+    }
+
+    /* Icône de parking : carré bleu avec un "P" blanc */
+    .icone-parking {
+      box-sizing: border-box;
+      background: #1565C0;
+      border: 1px solid #FFFFFF;
+      color: #FFFFFF;
+      font: bold 8px Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icone-parking.grand {
+      border-width: 1.5px;
+      font-size: 12px;
+    }
+
+    /* Carrés de la légende du campus (au lieu des ronds) */
+    .legende i.carre {
+      border-radius: 2px;
+    }
+
+    /* Message d'aide si les GeoJSON ne peuvent pas être lus */
+    .message-erreur {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      max-width: 90%;
+      background: #FDECEA;
+      color: #8A1C14;
+      border: 1px solid #F5C2BD;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font: 13px Arial, sans-serif;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
+    }
+    .message-erreur p {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    // Coordonnées de Madinat Al Irfane, Rabat
+    const madinatAlIrfane = [33.98165, -6.86463];
+
+    // Création de la carte
+    const map = L.map("map").setView(madinatAlIrfane, 16);
+
+    // Fond de carte OpenStreetMap
+    const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Marqueur sur Madinat Al Irfane
+    const marqueurIrfane = L.marker(madinatAlIrfane)
+      .addTo(map)
+      .bindPopup("<b>Madinat Al Irfane</b><br>Rabat, Maroc")
+      .openPopup();
+
+    // Afficher les coordonnées lors d'un clic
+    map.on("click", function (event) {
+      L.popup()
+        .setLatLng(event.latlng)
+        .setContent("Coordonnées : " + event.latlng.lat.toFixed(6) + ", " + event.latlng.lng.toFixed(6))
+        .openOn(map);
+    });
+
+
+    /* =====================================================
+       AJOUTS
+       ===================================================== */
+
+    // 1. Autres fonds de carte
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 19,
+        attribution: "Tiles &copy; Esri — Source : Esri, Maxar, Earthstar Geographics"
+      });
+
+    const topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+      maxZoom: 17,
+      attribution: 'Données : &copy; OpenStreetMap — Style : &copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+    });
+
+    // 2. Couches superposables
+    const zoneIrfane = L.circle(madinatAlIrfane, {
+      radius: 500,
+      color: "#1b4d3e",
+      fillColor: "#2e8b57",
+      fillOpacity: 0.15,
+      weight: 2
+    }).bindPopup("Zone de 500 m autour de Madinat Al Irfane");
+
+    // Couche qui reçoit les points ajoutés par double-clic
+    const pointsUtilisateur = L.layerGroup().addTo(map);
+
+    // 3. Contrôle des couches
+    const fondsDeCarte = {
+      "OpenStreetMap": osm,
+      "Satellite (Esri)": satellite,
+      "Topographique": topo
+    };
+
+    const couches = {
+      "Marqueur Madinat Al Irfane": L.layerGroup([marqueurIrfane]).addTo(map),
+      "Zone de 500 m": zoneIrfane,
+      "Mes points (double-clic)": pointsUtilisateur
+    };
+
+    const controleCouches = L.control.layers(fondsDeCarte, couches, { collapsed: true }).addTo(map);
+
+    // 4. Échelle graphique (métrique uniquement)
+    L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(map);
+
+    // 5. Bandeau de titre
+    const titre = L.control({ position: "topright" });
+    titre.onAdd = function () {
+      const div = L.DomUtil.create("div", "titre-carte");
+      div.innerHTML = "<h1>Madinat Al Irfane — Rabat</h1><p>TP4 Web Mapping · Leaflet</p>";
+      return div;
+    };
+    titre.addTo(map);
+
+    // 6. Coordonnées en direct sous la souris
+    const coordSouris = L.control({ position: "bottomright" });
+    coordSouris.onAdd = function () {
+      this._div = L.DomUtil.create("div", "coord-souris");
+      this._div.innerHTML = "Lat : — | Lng : —";
+      return this._div;
+    };
+    coordSouris.addTo(map);
+
+    map.on("mousemove", function (event) {
+      coordSouris._div.innerHTML =
+        "Lat : " + event.latlng.lat.toFixed(6) +
+        " | Lng : " + event.latlng.lng.toFixed(6) +
+        " | Zoom : " + map.getZoom();
+    });
+
+    // 7. Bouton « Retour à Madinat Al Irfane »
+    const boutonAccueil = L.control({ position: "topleft" });
+    boutonAccueil.onAdd = function () {
+      const div = L.DomUtil.create("div", "leaflet-bar bouton-carte");
+      div.innerHTML = '<a title="Revenir à Madinat Al Irfane">⌂</a>';
+      L.DomEvent.disableClickPropagation(div);
+      div.onclick = function () {
+        map.setView(madinatAlIrfane, 16);
+        marqueurIrfane.openPopup();
+      };
+      return div;
+    };
+    boutonAccueil.addTo(map);
+
+    // 8. Bouton de géolocalisation
+    let marqueurPosition = null;
+
+    const boutonLocalisation = L.control({ position: "topleft" });
+    boutonLocalisation.onAdd = function () {
+      const div = L.DomUtil.create("div", "leaflet-bar bouton-carte");
+      div.innerHTML = '<a title="Me localiser">◎</a>';
+      L.DomEvent.disableClickPropagation(div);
+      div.onclick = function () {
+        map.locate({ setView: true, maxZoom: 17 });
+      };
+      return div;
+    };
+    boutonLocalisation.addTo(map);
+
+    map.on("locationfound", function (event) {
+      if (marqueurPosition) {
+        map.removeLayer(marqueurPosition);
+      }
+      marqueurPosition = L.circle(event.latlng, {
+        radius: event.accuracy,
+        color: "#1e64c8",
+        fillOpacity: 0.2
+      }).addTo(map)
+        .bindPopup("Vous êtes ici (précision : " + Math.round(event.accuracy) + " m)")
+        .openPopup();
+    });
+
+    map.on("locationerror", function () {
+      alert("Impossible de déterminer votre position.");
+    });
+
+    // 9. Ajouter un point par double-clic (le double-clic ne zoome plus)
+    map.doubleClickZoom.disable();
+    let compteurPoints = 0;
+
+    map.on("dblclick", function (event) {
+      compteurPoints++;
+      const lat = event.latlng.lat.toFixed(6);
+      const lng = event.latlng.lng.toFixed(6);
+
+      L.circleMarker(event.latlng, {
+        radius: 7,
+        color: "#c0392b",
+        fillColor: "#e74c3c",
+        fillOpacity: 0.9
+      })
+        .addTo(pointsUtilisateur)
+        .bindPopup("<b>Point " + compteurPoints + "</b><br>" + lat + ", " + lng)
+        .openPopup();
+    });
+
+    // 10. Légende
+    const legende = L.control({ position: "bottomright" });
+    legende.onAdd = function () {
+      const div = L.DomUtil.create("div", "legende");
+      div.innerHTML =
+        "<b>Légende</b>" +
+        '<i style="background:#2e8b57; opacity:0.6"></i>Zone de 500 m<br>' +
+        '<i style="background:#e74c3c"></i>Mes points (double-clic)<br>' +
+        '<i style="background:#1e64c8; opacity:0.6"></i>Ma position';
+      return div;
+    };
+    legende.addTo(map);
+
+
+    /* =====================================================
+       COUCHES DU CAMPUS IAV (fichiers GeoJSON, sans GeoServer)
+       Le navigateur lit directement les fichiers :
+         data/grass.geojson, data/terrain.geojson, data/iav3D.geojson,
+         data/roads.geojson, data/points_iav.geojson   (en EPSG:4326)
+       et les images :
+         icones/tree.png, icones/palm-tree.png, icones/barriere.png
+       Les styles reproduisent ceux des fichiers SLD.
+       ===================================================== */
+    {
+      const DOSSIER_DONNEES = "data/";
+      const DOSSIER_ICONES = "icones/";
+
+      /* Calques Leaflet : les couches du campus passent sous le cercle
+         de 500 m, les points du double-clic et la position (zIndex 400),
+         et sous le marqueur de Madinat Al Irfane (zIndex 600). */
+      const NIVEAUX = [
+        { pane: "iav-verts",      zIndex: 350, zoomMinimum: 13 },
+        { pane: "iav-terrain",    zIndex: 360, zoomMinimum: 13 },
+        { pane: "iav-batiments",  zIndex: 370, zoomMinimum: 15 },
+        { pane: "iav-routes",     zIndex: 380, zoomMinimum: 16 },
+        { pane: "iav-points",     zIndex: 390, zoomMinimum: 15 },
+        { pane: "iav-etiquettes", zIndex: 395, zoomMinimum: 18 }
+      ];
+
+      NIVEAUX.forEach((niveau) => {
+        map.createPane(niveau.pane).style.zIndex = niveau.zIndex;
+      });
+
+      const mettreAJourVisibilite = () => {
+        const zoom = map.getZoom();
+        NIVEAUX.forEach((niveau) => {
+          map.getPane(niveau.pane).style.display =
+            zoom >= niveau.zoomMinimum ? "" : "none";
+        });
+      };
+
+      /* ----- Outils communs ----- */
+
+      const nomDe = (feature) => {
+        const p = feature.properties || {};
+        const nom = p.name || p.nom;
+        return nom && String(nom).trim() !== "" ? String(nom) : null;
+      };
+
+      const echapper = (texte) => {
+        const div = document.createElement("div");
+        div.textContent = texte;
+        return div.innerHTML;
+      };
+
+      const STYLE_SURVOL = {
+        color: "#FFFFFF",
+        weight: 3,
+        opacity: 1,
+        fillColor: "#FFFFFF",
+        fillOpacity: 0.2
+      };
+
+      const preparerSurvol = (feature, layer) => {
+        const nom = nomDe(feature);
+        if (!nom) return;
+
+        layer.bindTooltip(echapper(nom), {
+          sticky: true,
+          direction: "top",
+          offset: [0, -10],
+          className: "etiquette-survol"
+        });
+
+        const styleInitial = {
+          color: layer.options.color,
+          weight: layer.options.weight,
+          opacity: layer.options.opacity,
+          fillColor: layer.options.fillColor,
+          fillOpacity: layer.options.fillOpacity
+        };
+
+        layer.on("mouseover", () => layer.setStyle(STYLE_SURVOL));
+        layer.on("mouseout", () => layer.setStyle(styleInitial));
+      };
+
+      /* ----- Espaces verts (grass.sld) ----- */
+
+      const espacesVerts = L.geoJSON(null, {
+        pane: "iav-verts",
+        interactive: false,
+        style: {
+          color: "#B9DB92",
+          weight: 0.6,
+          fillColor: "#D7EDB8",
+          fillOpacity: 1
+        }
+      });
+
+      /* ----- Emprise du campus (terrain.sld) : double trait ----- */
+
+      const terrainFond = L.geoJSON(null, {
+        pane: "iav-terrain",
+        interactive: false,
+        style: {
+          color: "#FFFFFF",
+          weight: 4,
+          opacity: 0.8,
+          fill: false
+        }
+      });
+
+      const terrainTrait = L.geoJSON(null, {
+        pane: "iav-terrain",
+        style: {
+          color: "#1F4A3E",
+          weight: 2,
+          opacity: 1,
+          fillColor: "#FFFFFF",
+          fillOpacity: 0          // intérieur invisible mais sensible au survol
+        },
+        onEachFeature: preparerSurvol
+      });
+
+      const terrain = L.layerGroup([terrainFond, terrainTrait]);
+
+      /* ----- Bâtiments (iav3D.sld) : couleur du champ "color" ----- */
+
+      const couleurBatiment = (feature) => {
+        const valeur = (feature.properties || {}).color;
+        if (valeur === null || valeur === undefined || String(valeur).trim() === "") {
+          return null;
+        }
+        const couleur = String(valeur).trim();
+        return couleur.startsWith("#") ? couleur : "#" + couleur;
+      };
+
+      const etiquettesBatiments = L.layerGroup();
+
+      const ajouterEtiquette = (feature, layer) => {
+        const nom = nomDe(feature);
+        if (!nom || !layer.getBounds) return;
+
+        L.marker(layer.getBounds().getCenter(), {
+          pane: "iav-etiquettes",
+          interactive: false,
+          keyboard: false,
+          icon: L.divIcon({
+            className: "etiquette-batiment",
+            html: `<span>${echapper(nom)}</span>`,
+            iconSize: null
+          })
+        }).addTo(etiquettesBatiments);
+      };
+
+      const batiments = L.geoJSON(null, {
+        pane: "iav-batiments",
+        style: (feature) => {
+          const couleur = couleurBatiment(feature);
+          if (!couleur) {
+            return { fillColor: "#CFD8DC", fillOpacity: 1, weight: 0 };
+          }
+          return {
+            fillColor: couleur,
+            fillOpacity: 0.92,
+            color: "#FFFFFF",
+            weight: 0.6,
+            opacity: 0.6
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          preparerSurvol(feature, layer);
+          ajouterEtiquette(feature, layer);
+        }
+      });
+
+      const coucheBatiments = L.layerGroup([batiments, etiquettesBatiments]);
+
+      /* ----- Routes (roads.sld) : chaussée blanche + points ronds ----- */
+
+      const STYLES_ROUTES = {
+        principale: { fond: 7,   trait: 5, couleur: "#2D3942", espace: 10 },
+        secondaire: { fond: 5.5, trait: 4, couleur: "#506475", espace: 8 },
+        piste:      { fond: 4,   trait: 3, couleur: "#859AAD", espace: 6 }
+      };
+
+      const categorieRoute = (feature) => {
+        const categorie = String((feature.properties || {}).category || "");
+        if (categorie.includes("Princip")) return "principale";
+        if (categorie.includes("Secondaire")) return "secondaire";
+        if (categorie.includes("iste")) return "piste";
+        return null;
+      };
+
+      const routesFond = L.geoJSON(null, {
+        pane: "iav-routes",
+        interactive: false,
+        filter: (feature) => categorieRoute(feature) !== null,
+        style: (feature) => ({
+          color: "#FFFFFF",
+          weight: STYLES_ROUTES[categorieRoute(feature)].fond,
+          lineCap: "round",
+          lineJoin: "round"
+        })
+      });
+
+      const routesPoints = L.geoJSON(null, {
+        pane: "iav-routes",
+        interactive: false,
+        filter: (feature) => categorieRoute(feature) !== null,
+        style: (feature) => {
+          const s = STYLES_ROUTES[categorieRoute(feature)];
+          return {
+            color: s.couleur,
+            weight: s.trait,
+            lineCap: "round",
+            dashArray: `0.1 ${s.espace}`
+          };
+        }
+      });
+
+      const routes = L.layerGroup([routesFond, routesPoints]);
+
+      /* ----- Points (points_iav.sld) : arbres, palmiers, parkings, entrée ----- */
+
+      const typePoint = (feature) => {
+        const p = feature.properties || {};
+        if (p.name === "tree") return "arbre";
+        if (p.name === "palmier") return "palmier";
+        if (p.icon_name === "parking") return "parking";
+        if (p.icon_name === "entrance") return "entree";
+        return null;
+      };
+
+      const iconePoint = (type, zoom) => {
+        const grand = zoom >= 18;
+
+        if (type === "parking") {
+          const taille = grand ? 18 : 12;
+          return L.divIcon({
+            className: "icone-parking" + (grand ? " grand" : ""),
+            html: "P",
+            iconSize: [taille, taille]
+          });
+        }
+
+        const fichiers = {
+          arbre: "tree.png",
+          palmier: "palm-tree.png",
+          entree: "barriere.png"
+        };
+        const taille = type === "entree" ? (grand ? 28 : 16) : (grand ? 26 : 14);
+
+        return L.icon({
+          iconUrl: DOSSIER_ICONES + fichiers[type],
+          iconSize: [taille, taille],
+          iconAnchor: [taille / 2, taille / 2]
+        });
+      };
+
+      /* Arbres et palmiers à partir du zoom 16, parkings et entrée dès le zoom 15 */
+      const pointVisible = (type, zoom) =>
+        (type === "arbre" || type === "palmier") ? zoom >= 16 : zoom >= 15;
+
+      const pointsIAV = L.geoJSON(null, {
+        filter: (feature) => typePoint(feature) !== null,
+        pointToLayer: (feature, latlng) => {
+          const type = typePoint(feature);
+          const zoom = map.getZoom();
+          const marqueur = L.marker(latlng, {
+            pane: "iav-points",
+            interactive: false,
+            keyboard: false,
+            icon: iconePoint(type, zoom),
+            opacity: pointVisible(type, zoom) ? 1 : 0
+          });
+          marqueur.typePoint = type;
+          return marqueur;
+        }
+      });
+
+      const mettreAJourPoint = (marqueur) => {
+        const zoom = map.getZoom();
+        marqueur.setIcon(iconePoint(marqueur.typePoint, zoom));
+        marqueur.setOpacity(pointVisible(marqueur.typePoint, zoom) ? 1 : 0);
+      };
+
+      /* ----- Ajout à la carte et au contrôle des couches existant ----- */
+
+      const couchesIAV = {
+        "IAV : espaces verts": espacesVerts,
+        "IAV : emprise du campus": terrain,
+        "IAV : bâtiments": coucheBatiments,
+        "IAV : routes et chemins": routes,
+        "IAV : arbres, parkings, entrée": pointsIAV
+      };
+
+      Object.entries(couchesIAV).forEach(([nom, couche]) => {
+        couche.addTo(map);
+        controleCouches.addOverlay(couche, nom);
+      });
+
+      map.on("zoomend", () => {
+        mettreAJourVisibilite();
+        pointsIAV.eachLayer(mettreAJourPoint);
+      });
+
+      mettreAJourVisibilite();
+
+      /* ----- Compléments de la légende existante ----- */
+
+      legende.getContainer().insertAdjacentHTML("beforeend",
+        "<br><b>Campus IAV</b>" +
+        '<i class="carre" style="background:#D7EDB8; border:1px solid #B9DB92"></i>Espaces verts<br>' +
+        '<i class="carre" style="background:transparent; border:2px solid #1F4A3E"></i>Emprise du campus<br>' +
+        '<i class="carre" style="background:#5B8DB8"></i>Bâtiments (couleur des données)<br>' +
+        '<i class="carre" style="background:#1565C0"></i>Parking<br>' +
+        "<small>Couches visibles à partir du zoom 13 à 16</small>"
+      );
+
+      /* ----- Messages d'aide en cas de problème ----- */
+
+      const afficherMessage = (texte) => {
+        let boite = document.querySelector(".message-erreur");
+        if (!boite) {
+          boite = document.createElement("div");
+          boite.className = "message-erreur";
+          document.body.appendChild(boite);
+        }
+        boite.innerHTML += `<p>${texte}</p>`;
+      };
+
+      if (window.location.protocol === "file:") {
+        afficherMessage(
+          "La page est ouverte par double-clic : le navigateur bloque la lecture des fichiers GeoJSON. " +
+          "Ouvrez-la avec Live Server (VS Code) ou depuis Netlify."
+        );
+      }
+
+      const semblePasEnWGS84 = (donnees) => {
+        const entite = (donnees.features || []).find((f) => f.geometry);
+        if (!entite) return false;
+        let c = entite.geometry.coordinates;
+        while (Array.isArray(c[0])) c = c[0];
+        return Math.abs(c[0]) > 180 || Math.abs(c[1]) > 90;
+      };
+
+      /* ----- Chargement des fichiers GeoJSON ----- */
+
+      const FICHIERS = [
+        { nom: "grass",      couches: [espacesVerts] },
+        { nom: "terrain",    couches: [terrainFond, terrainTrait] },
+        { nom: "iav3D",      couches: [batiments] },
+        { nom: "roads",      couches: [routesFond, routesPoints] },
+        { nom: "points_iav", couches: [pointsIAV] }
+      ];
+
+      FICHIERS.forEach((fichier) => {
+        const chemin = `${DOSSIER_DONNEES}${fichier.nom}.geojson`;
+
+        fetch(chemin)
+          .then((reponse) => {
+            if (!reponse.ok) throw new Error(`erreur ${reponse.status}`);
+            return reponse.json();
+          })
+          .then((donnees) => {
+            if (semblePasEnWGS84(donnees)) {
+              afficherMessage(
+                `${fichier.nom}.geojson n'est pas en EPSG:4326 : réexportez-le depuis QGIS en WGS 84.`
+              );
+              return;
+            }
+            fichier.couches.forEach((couche) => couche.addData(donnees));
+          })
+          .catch((erreur) => {
+            if (window.location.protocol === "file:") return;
+            console.error(`${chemin} introuvable ou illisible :`, erreur);
+            afficherMessage(`Impossible de lire ${chemin} (vérifiez le nom et l'emplacement du fichier).`);
+          });
+      });
+    }
+  </script>
+</body>
+</html>
